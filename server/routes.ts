@@ -4,8 +4,6 @@ import { storage } from "./storage";
 import { insertWaitlistEntrySchema, insertBlogPostSchema, updateBlogPostSchema } from "@shared/schema";
 import { googleSheetsService } from "./services/google-sheets";
 import { supabase } from "./lib/supabase";
-import { buildEmailHtml } from "./services/email-template";
-import nodemailer from "nodemailer";
 import crypto from "crypto";
 import multer from "multer";
 
@@ -253,75 +251,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(post);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog post" });
-    }
-  });
-
-  // ── Blog Email Notification ─────────────────────────────────────────
-
-  app.post("/api/admin/blogs/:id/notify", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const post = await storage.getBlogPost(id);
-      if (!post) return res.status(404).json({ message: "Post not found" });
-
-      // Fetch all subscribers who opted in
-      const { data: subscribers, error: subError } = await supabase
-        .from("waitlist_subscribers")
-        .select("email")
-        .eq("receive_updates", true);
-
-      if (subError) throw new Error(subError.message);
-      if (!subscribers || subscribers.length === 0) {
-        return res.json({ message: "No subscribers to notify", sent: 0 });
-      }
-
-      const emails = subscribers.map((s: any) => s.email);
-      const blogUrl = `${req.protocol}://${req.get("host")}/blog/${post.id}`;
-
-      // Build email HTML
-      const htmlBody = buildEmailHtml({
-        title: post.title,
-        excerpt: post.excerpt,
-        coverImage: post.coverImage,
-        blogUrl,
-        author: post.author,
-        readTime: post.readTime,
-      });
-
-      // Send via Nodemailer (Gmail SMTP)
-      const gmailUser = process.env.GMAIL_USER;
-      const gmailPass = process.env.GMAIL_APP_PASSWORD;
-      if (!gmailUser || !gmailPass) {
-        return res.status(500).json({ message: "GMAIL_USER or GMAIL_APP_PASSWORD not configured" });
-      }
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: gmailUser, pass: gmailPass },
-      });
-
-      let sent = 0;
-      for (const email of emails) {
-        try {
-          await transporter.sendMail({
-            from: `"Quit 9to5" <${gmailUser}>`,
-            to: email,
-            subject: `New Blog: ${post.title}`,
-            html: htmlBody,
-          });
-          sent++;
-        } catch (err) {
-          console.error(`Failed to send to ${email}:`, err);
-        }
-      }
-
-      res.json({ message: "Notifications sent", sent });
-    } catch (error) {
-      console.error("Error sending notifications:", error);
-      res.status(500).json({
-        message: "Failed to send notifications",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
     }
   });
 

@@ -46,6 +46,8 @@ export const blogPosts = pgTable("blog_posts", {
   author: text("author").notNull().default("Pallav Kulhari"),
   featured: boolean("featured").notNull().default(false),
   status: text("status").notNull().default("draft"), // "draft" | "published"
+  seoTitle: text("seo_title").default(""),
+  metaDescription: text("meta_description").default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -65,7 +67,8 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
   author: z.string().default("Pallav Kulhari"),
   featured: z.boolean().default(false),
   status: z.enum(["draft", "published"]).default("draft"),
-
+  seoTitle: z.string().optional().default(""),
+  metaDescription: z.string().optional().default(""),
 });
 
 export const updateBlogPostSchema = insertBlogPostSchema.partial();

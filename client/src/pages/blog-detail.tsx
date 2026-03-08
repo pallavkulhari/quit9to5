@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { WaitlistFormInline } from "@/components/WaitlistForm";
 import type { BlogPost } from "@shared/schema";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 
 /**
  * Split HTML content at CTA markers and render WaitlistFormInline
@@ -85,6 +85,39 @@ export default function BlogDetail() {
     const htmlContent = isLegacyContent
         ? (post.content as unknown as string[]).map((p) => `<p>${p}</p>`).join("")
         : (post.content as string);
+
+    // Dynamic SEO meta tags
+    useEffect(() => {
+        const pageTitle = post.seoTitle || post.title;
+        const pageDesc = post.metaDescription || post.excerpt;
+        document.title = `${pageTitle} | Quit 9to5`;
+
+        const setMeta = (name: string, content: string) => {
+            let el = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`);
+            if (!el) {
+                el = document.createElement("meta");
+                if (name.startsWith("og:") || name.startsWith("twitter:")) {
+                    el.setAttribute("property", name);
+                } else {
+                    el.setAttribute("name", name);
+                }
+                document.head.appendChild(el);
+            }
+            el.setAttribute("content", content);
+        };
+
+        setMeta("description", pageDesc);
+        setMeta("og:title", pageTitle);
+        setMeta("og:description", pageDesc);
+        setMeta("og:image", post.coverImage);
+        setMeta("og:type", "article");
+        setMeta("twitter:card", "summary_large_image");
+        setMeta("twitter:title", pageTitle);
+        setMeta("twitter:description", pageDesc);
+        setMeta("twitter:image", post.coverImage);
+
+        return () => { document.title = "Quit 9to5"; };
+    }, [post]);
 
     return (
         <div className="min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-72px)] bg-black text-white">

@@ -34,6 +34,8 @@ export default function AdminEditor() {
     const [author, setAuthor] = useState("Pallav Kulhari");
     const [featured, setFeatured] = useState(false);
     const [status, setStatus] = useState<"draft" | "published">("draft");
+    const [seoTitle, setSeoTitle] = useState("");
+    const [metaDescription, setMetaDescription] = useState("");
 
     // Auth guard
     useEffect(() => {
@@ -63,6 +65,8 @@ export default function AdminEditor() {
                     setAuthor(post.author);
                     setFeatured(post.featured);
                     setStatus(post.status);
+                    setSeoTitle(post.seoTitle || "");
+                    setMetaDescription(post.metaDescription || "");
                 })
                 .catch(() => setError("Failed to load post"))
                 .finally(() => setLoading(false));
@@ -125,6 +129,7 @@ export default function AdminEditor() {
                 title, slug, excerpt, coverImage,
                 content,
                 date, readTime, author, featured, status,
+                seoTitle, metaDescription,
             };
             const url = isEditing ? `/api/admin/blogs/${params.id}` : "/api/admin/blogs";
             const method = isEditing ? "PUT" : "POST";
@@ -410,6 +415,38 @@ export default function AdminEditor() {
                     <span className="text-xs text-neutral-600">
                         Featured post appears as the hero card on the blog page
                     </span>
+                </div>
+
+                {/* ── SEO Section ──────────────────────────────────── */}
+                <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-neutral-300 flex items-center gap-2">
+                        <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        SEO Settings
+                    </h3>
+                    <div>
+                        <label className={labelClass}>SEO Title <span className="text-neutral-600">(optional — defaults to post title)</span></label>
+                        <input
+                            type="text"
+                            value={seoTitle}
+                            onChange={(e) => setSeoTitle(e.target.value)}
+                            placeholder={title || "Custom title for search engines"}
+                            className={inputClass}
+                        />
+                        <span className="text-xs text-neutral-600 mt-1 block">{(seoTitle || title).length}/60 characters</span>
+                    </div>
+                    <div>
+                        <label className={labelClass}>Meta Description</label>
+                        <textarea
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            placeholder={excerpt || "Brief description for search engine results"}
+                            rows={3}
+                            className={`${inputClass} resize-none`}
+                        />
+                        <span className="text-xs text-neutral-600 mt-1 block">{(metaDescription || excerpt).length}/160 characters</span>
+                    </div>
                 </div>
 
                 {/* Bottom spacer */}
