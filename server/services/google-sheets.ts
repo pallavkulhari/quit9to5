@@ -7,11 +7,21 @@ export class GoogleSheetsService {
 
   constructor() {
     // Initialize Google Sheets API
-    const auth = new GoogleAuth({
-      credentials: {
+    // Prefer base64-encoded JSON (avoids private key newline escaping issues)
+    let credentials: { client_email?: string; private_key?: string };
+    const jsonBase64 = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64;
+    if (jsonBase64) {
+      const json = JSON.parse(Buffer.from(jsonBase64, 'base64').toString('utf-8'));
+      credentials = { client_email: json.client_email, private_key: json.private_key };
+    } else {
+      credentials = {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      },
+        private_key: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+      };
+    }
+
+    const auth = new GoogleAuth({
+      credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
@@ -23,7 +33,7 @@ export class GoogleSheetsService {
     try {
       const timestamp = new Date().toISOString();
       const rowData = [timestamp, email]; // Column A = timestamp, Column B = email
-      
+
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
         range: 'Form Responses 1!A:B', // Specific sheet with columns A and B
@@ -32,7 +42,7 @@ export class GoogleSheetsService {
           values: [rowData],
         },
       });
-      
+
       console.log('Successfully added to Google Sheets');
     } catch (error) {
       console.error('Error adding email to Google Sheets:', error);

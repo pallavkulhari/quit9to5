@@ -107,6 +107,8 @@ export class MemStorage implements IStorage {
       author: row.author,
       featured: row.featured,
       status: row.status,
+      seoTitle: row.seo_title || "",
+      metaDescription: row.meta_description || "",
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };
