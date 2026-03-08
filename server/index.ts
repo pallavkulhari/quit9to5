@@ -1,13 +1,8 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-
-
-process.on("uncaughtException", (err) => {
-  console.error("UNCAUGHT EXCEPTION:", err);
-  process.exit(1);
-});
-
+import { supabase } from "./lib/supabase";
 
 const app = express();
 app.use(express.json());
@@ -70,10 +65,24 @@ app.use((req, res, next) => {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);
+
+      // ── Supabase keep-alive (prevents free-tier pause after 7 days) ──
+      const pingSupabase = async () => {
+        try {
+          await supabase.from("keepalive").upsert(
+            { id: 1, pinged_at: new Date().toISOString() },
+            { onConflict: "id" }
+          );
+          log("Supabase keep-alive ping sent");
+        } catch (err) {
+          console.error("Keep-alive ping failed:", err);
+        }
+      };
+      pingSupabase(); // ping on startup
+      setInterval(pingSupabase, 3 * 24 * 60 * 60 * 1000); // every 3 days
     }
   );
 })();
